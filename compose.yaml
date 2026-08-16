@@ -1,0 +1,31 @@
+name: docker-mongo
+
+services:
+  mongo:
+    image: ${MONGO_IMAGE:-mongo:latest}
+    # 本地已有镜像，禁止 Compose 自动拉取/更新
+    pull_policy: never
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
+      # 供 /docker-entrypoint-initdb.d 初始化脚本使用
+      MONGO_DATABASE: ${MONGO_DATABASE}
+      MONGO_APP_USERNAME: ${MONGO_APP_USERNAME}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD}
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    volumes:
+      - mongo_data:/data/db
+      - ./mongo/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # $$ 转义为容器内的 $，使用 root 用户实际执行 ping 而非只检查端口
+      test: ["CMD-SHELL", "mongosh --host 127.0.0.1 --port 27017 -u \"$$MONGO_INITDB_ROOT_USERNAME\" -p \"$$MONGO_INITDB_ROOT_PASSWORD\" --authenticationDatabase admin --quiet --eval 'db.adminCommand(\"ping\").ok' | grep -q 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+volumes:
+  mongo_data:

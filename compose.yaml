@@ -2,18 +2,22 @@ name: docker-mongo
 
 services:
   mongo:
-    image: ${MONGO_IMAGE:-mongo:latest}
+    image: ${MONGO_IMAGE:-mongo:8.3.11}
     restart: unless-stopped
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
-      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?MONGO_ROOT_USERNAME is required in .env}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD is required in .env}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:?MONGO_DATABASE is required in .env}
       # 供 /docker-entrypoint-initdb.d 初始化脚本使用
-      MONGO_DATABASE: ${MONGO_DATABASE}
-      MONGO_APP_USERNAME: ${MONGO_APP_USERNAME}
-      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD}
+      MONGO_DATABASE: ${MONGO_DATABASE:?MONGO_DATABASE is required in .env}
+      MONGO_APP_USERNAME: ${MONGO_APP_USERNAME:?MONGO_APP_USERNAME is required in .env}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:?MONGO_APP_PASSWORD is required in .env}
+      # 规避 MongoDB 8.x 与 Docker Desktop 内核 6.19~7.0.13 的 TCMalloc/rseq 不兼容
+      # (SERVER-121912)，否则 mongod 拒绝启动。内核 ≥7.0.14 后可移除。
+      GLIBC_TUNABLES: glibc.pthread.rseq=1
     ports:
-      - "${MONGO_PORT:-27017}:27017"
+      # 仅绑定本机回环地址，避免暴露到局域网
+      - "127.0.0.1:${MONGO_PORT:-27017}:27017"
     volumes:
       - mongo_data:/data/db
       - ./mongo/init:/docker-entrypoint-initdb.d:ro

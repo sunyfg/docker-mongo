@@ -3,8 +3,6 @@ name: docker-mongo
 services:
   mongo:
     image: ${MONGO_IMAGE:-mongo:latest}
-    # 本地已有镜像，禁止 Compose 自动拉取/更新
-    pull_policy: never
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
